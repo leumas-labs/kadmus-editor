@@ -37,3 +37,17 @@ Bien que le chargement local par `file://` fonctionne grâce aux permissions de 
 ### Concept
 * **Idée** : Raccorder l'événement `term.onResize` d'xterm.js sur le frontend pour envoyer un message JSON-RPC `term_resize` (que nous avons déjà écrit dans notre routeur).
 * Le backend appelle `TerminalSession::resize(cols, rows)` qui utilise l'appel système `ioctl(pty_master_fd, TIOCSWINSZ, &ws)` pour ajuster la grille de caractères du shell en temps réel lors du redimensionnement de la fenêtre GTK de l'éditeur.
+
+---
+
+## 5. Intégration Native de Llama.cpp (IA Locale Privée)
+
+### Concept
+Pour faire de Kadmus un éditeur "AI-First" entièrement privé et fonctionnel hors-ligne, nous pouvons intégrer directement **`llama.cpp`** :
+* **Liaison statique** : Compiler `llama.cpp` sous forme de bibliothèque statique (`libllama.a`) et la lier directement à notre binaire unique `kadmus`.
+* **Modèle léger** : Charger des modèles GGUF ultra-légers et optimisés pour le code (comme *Qwen-2.5-Coder-1.5B* ou *DeepSeek-Coder-1.5B*). Ces modèles font moins de 1,5 Go, consomment peu de RAM et s'exécutent très vite sur CPU (via AVX2) ou GPU (via CUDA/Vulkan).
+* **Streaming asynchrone** :
+  1. L'utilisateur pose une question dans le panneau de chat ou demande une autocomplétion (Tab).
+  2. Le backend C++ reçoit la requête, la pousse dans une file d'attente d'inférence, et génère les tokens en tâche de fond dans un thread dédié pour ne pas bloquer l'UI.
+  3. Les morceaux de texte générés sont poussés en temps réel vers le frontend via WebSocket au format JSON-RPC.
+* **Avantage** : Confidentialité absolue (aucun code ne quitte la machine de l'utilisateur), coûts d'API nuls, et indépendance totale vis-à-vis des connexions réseau.
