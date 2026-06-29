@@ -4,32 +4,31 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Kadmus Editor - Native System IDE</title>
-    <!-- Modern Typography Font -->
+    <title>Kadmus Editor - Premium System IDE</title>
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
   </head>
   <body>
     <div id="app">
-      <!-- Main Layout Wrapper -->
       <div class="workbench">
-        <!-- 1. LEFT ACTIVITY BAR (Toolbar) -->
+        <!-- 1. LEFT ACTIVITY BAR -->
         <div class="activity-bar">
           <div class="bar-top">
             <div class="icon-btn active" id="btn-explorer" title="Explorer">
-              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-files"><path d="M20 7h-3a2 2 0 0 1-2-2V2"/><path d="M9 18a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h7l4 4v10a2 2 0 0 1-2 2Z"/><path d="M3 7.6v12.8A1.6 1.6 0 0 0 4.6 22h9.8"/></svg>
+              <i data-lucide="files" class="nav-icon"></i>
             </div>
             <div class="icon-btn" id="btn-git" title="Version Control (Git)">
-              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-git-branch"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
+              <i data-lucide="git-branch" class="nav-icon"></i>
             </div>
             <div class="icon-btn" id="btn-extensions" title="Extensions">
-              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-blocks"><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/><path d="M7 21h-4a1 1 0 0 1-1-1v-4"/></svg>
+              <i data-lucide="blocks" class="nav-icon"></i>
             </div>
           </div>
           <div class="bar-bottom">
             <div class="icon-btn" id="btn-agent" title="AI Agent Panel">
-              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sparkles"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275Z"/></svg>
+              <i data-lucide="sparkles" class="nav-icon animate-pulse"></i>
             </div>
           </div>
         </div>
@@ -40,33 +39,29 @@
             <span id="sidebar-title">EXPLORER</span>
           </div>
           
-          <!-- Explorer View Content -->
+          <!-- Explorer View -->
           <div class="sidebar-content" id="explorer-view">
-            <div class="dir-node open">
-              <div class="node-label">
-                <span class="chevron">▼</span>
-                <span class="folder-name" id="workspace-name">Workspace</span>
-              </div>
-              <div class="node-children" id="explorer-files">
-                <!-- Injected programmatically by C++ backend -->
-                <div class="loading-label">Loading files...</div>
-              </div>
+            <div class="explorer-tree" id="explorer-files">
+              <!-- Dynamically populated -->
+              <div class="loading-label">Loading files...</div>
             </div>
           </div>
 
-          <!-- Git View Content (hidden by default) -->
+          <!-- Git View -->
           <div class="sidebar-content hidden" id="git-view">
             <div class="git-header-bar">
               <span class="view-subtitle">Changes</span>
-              <button class="action-btn" id="git-commit-btn">Commit</button>
+              <button class="action-btn" id="git-commit-btn">
+                <i data-lucide="check" class="btn-icon"></i> Commit
+              </button>
             </div>
-            <input type="text" class="git-input" id="git-message" placeholder="Commit message (Ctrl+Enter to commit)" />
+            <input type="text" class="git-input" id="git-message" placeholder="Commit message (Ctrl+Enter)" />
             <div class="git-list" id="git-files-list">
               <div class="empty-state">No changes detected</div>
             </div>
           </div>
 
-          <!-- Extensions View Content (hidden by default) -->
+          <!-- Extensions View -->
           <div class="sidebar-content hidden" id="extensions-view">
             <div class="ext-search">
               <input type="text" class="search-input" id="ext-search-input" placeholder="Search VSIX path..." />
@@ -78,34 +73,30 @@
           </div>
         </div>
 
-        <!-- 3. CENTRAL WORK AREA (Editor + Terminal) -->
+        <!-- 3. CENTRAL WORK AREA -->
         <div class="editor-workbench">
-          <!-- Editor Section -->
+          <!-- Editor Container -->
           <div class="editor-section">
             <div class="tab-bar" id="tab-bar">
               <!-- Rendered programmatically -->
             </div>
             <div class="editor-container" id="editor-root">
-              <!-- Monaco Editor will render inside here -->
+              <!-- Monaco Editor -->
             </div>
           </div>
 
-          <!-- Terminal Section -->
+          <!-- Terminal Container -->
           <div class="terminal-section">
             <div class="terminal-header">
               <span class="term-title">TERMINAL</span>
             </div>
-            <div class="terminal-body" id="terminal-body">
-              <div class="terminal-output" id="terminal-output"></div>
-              <div class="terminal-input-line">
-                <span class="prompt">samuel-yevi@kadmus-ide:~$</span>
-                <input type="text" class="terminal-stdin" id="terminal-stdin" autofocus />
-              </div>
+            <div class="terminal-body" id="terminal-container">
+              <!-- xterm.js will mount inside here -->
             </div>
           </div>
         </div>
 
-        <!-- 4. RIGHT AI PANEL (Collapsible) -->
+        <!-- 4. RIGHT AI PANEL -->
         <div class="ai-panel collapsed" id="ai-panel">
           <div class="ai-header">
             <span class="ai-title">KADMUS ASSISTANT</span>
@@ -113,7 +104,7 @@
           <div class="ai-messages" id="ai-messages">
             <div class="msg bot">
               <span class="author">Kadmus AI</span>
-              <p>Bonjour ! Je suis l'assistant IA natif d'Interface Studio. Comment puis-je t'aider à coder aujourd'hui ?</p>
+              <p>Bonjour ! Je suis l'assistant IA natif d'Interface Studio. Comment puis-je t'aider aujourd'hui ?</p>
             </div>
           </div>
           <div class="ai-input-area">

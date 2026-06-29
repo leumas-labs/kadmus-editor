@@ -1,5 +1,8 @@
 import './style.css';
 import * as monaco from 'monaco-editor';
+import { Terminal } from 'xterm';
+import { FitAddon } from 'xterm-addon-fit';
+import 'xterm/css/xterm.css';
 
 // Configure Monaco Editor Workers for Vite
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
@@ -7,6 +10,9 @@ import jsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker';
 import cssWorker from 'monaco-editor/esm/vs/language/css/css.worker?worker';
 import htmlWorker from 'monaco-editor/esm/vs/language/html/html.worker?worker';
 import tsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker';
+
+// Lucide Icons Import
+import { createIcons, Files, GitBranch, Blocks, Sparkles, Check } from 'lucide';
 
 self.MonacoEnvironment = {
   getWorker(_, label) {
@@ -18,18 +24,17 @@ self.MonacoEnvironment = {
   }
 };
 
-// Extract connection token from query parameter (passed by C++ loader window)
+// Extract token
 const urlParams = new URLSearchParams(window.location.search);
 const token = urlParams.get('t') || '';
 
-// Connection State
+// Connection and UI states
 let socket: WebSocket;
 let activeTabPath = '';
 let terminalSessionId = -1;
-
 const openTabs = new Map<string, { model: monaco.editor.ITextModel; name: string }>();
 
-// JSON-RPC Request Tracker
+// JSON-RPC Helpers
 let nextId = 1;
 const pendingRequests = new Map<number, (res: any) => void>();
 
@@ -42,32 +47,37 @@ function callBackend(method: string, params: any = {}): Promise<any> {
 }
 
 // -------------------------------------------------------------
-// Monaco Editor Initialization
+// Monaco Editor
 // -------------------------------------------------------------
 let editor: monaco.editor.IStandaloneCodeEditor;
 
 function initMonaco() {
   editor = monaco.editor.create(document.getElementById('editor-root')!, {
-    value: '// Welcome to Kadmus Editor\n// Select a file in the explorer to edit.',
+    value: '// Bienvenue dans Kadmus Editor\n// Choisis un fichier dans le dossier de travail à gauche pour commencer.',
     language: 'plaintext',
     theme: 'vs-dark',
     automaticLayout: true,
     fontSize: 13,
     fontFamily: 'Fira Code, monospace',
-    minimap: { enabled: true }
+    minimap: { enabled: true },
+    scrollbar: {
+      vertical: 'visible',
+      horizontal: 'visible',
+      useShadows: false,
+      verticalScrollbarSize: 6,
+      horizontalScrollbarSize: 6
+    }
   });
 
-  // Automatically save files on edit change
+  // Direct save on content edits
   editor.onDidChangeModelContent(() => {
     if (activeTabPath && openTabs.has(activeTabPath)) {
       const content = editor.getValue();
-      // Send write request (Debounced or direct for simple testing)
       callBackend('fs_write', { path: activeTabPath, content });
     }
   });
 }
 
-// Helper to determine language by file extension
 function getLanguageByExtension(filename: string): string {
   const ext = filename.split('.').pop() || '';
   switch (ext) {
@@ -78,43 +88,106 @@ function getLanguageByExtension(filename: string): string {
     case 'html': return 'html';
     case 'css': return 'css';
     case 'md': return 'markdown';
-    case 'kd': return 'cpp'; // kdlang custom coloring mockup
+    case 'txt': return 'plaintext';
     default: return 'plaintext';
   }
 }
 
 // -------------------------------------------------------------
-// File Explorer View
+// Interactive File Explorer Tree (Collapsible & Recursive)
 // -------------------------------------------------------------
-async function loadFileExplorer(path: string = '.') {
-  const fileContainer = document.getElementById('explorer-files')!;
-  fileContainer.innerHTML = '<div class="loading-label">Loading files...</div>';
+interface TreeNode {
+  name: string;
+  path: string;
+  is_directory: boolean;
+  size: number;
+}
 
-  const items = await callBackend('fs_list', { path });
-  if (items && Array.isArray(items)) {
-    fileContainer.innerHTML = '';
-    
-    // Sort directories first
-    items.sort((a: any, b: any) => (b.is_directory ? 1 : 0) - (a.is_directory ? 1 : 0));
+async function renderTree(parentPath: string, container: HTMLElement, indentLevel: number) {
+  const items: TreeNode[] = await callBackend('fs_list', { path: parentPath });
+  if (!items || !Array.isArray(items)) return;
 
-    items.forEach((item: any) => {
-      const row = document.createElement('div');
-      row.className = 'node-label';
-      
-      const icon = item.is_directory ? '📁' : '📄';
-      row.innerHTML = `<span style="margin-right: 6px;">${icon}</span><span class="file-name">${item.name}</span>`;
-      
-      if (!item.is_directory) {
-        row.addEventListener('click', () => openFile(item.path, item.name));
-      }
-      
-      fileContainer.appendChild(row);
-    });
+  // Clear loading labels at root
+  if (indentLevel === 0) {
+    container.innerHTML = '';
   }
+
+  // Sort: Folders first, then alphabetically
+  items.sort((a, b) => {
+    if (a.is_directory && !b.is_directory) return -1;
+    if (!a.is_directory && b.is_directory) return 1;
+    return a.name.localeCompare(b.name);
+  });
+
+  items.forEach((item) => {
+    const row = document.createElement('div');
+    row.className = 'tree-node';
+    
+    // Inject indent spacers
+    for (let i = 0; i < indentLevel; i++) {
+      const spacer = document.createElement('span');
+      spacer.className = 'tree-indent';
+      row.appendChild(spacer);
+    }
+
+    // Add arrow indicator for directory
+    const arrow = document.createElement('span');
+    arrow.className = 'tree-arrow';
+    if (item.is_directory) {
+      arrow.innerHTML = '▶'; // Right arrow character
+    } else {
+      arrow.innerHTML = '&nbsp;'; // Non-breaking space for files to align
+    }
+    row.appendChild(arrow);
+
+    // Icon
+    const icon = document.createElement('span');
+    icon.className = 'tree-icon';
+    icon.innerHTML = item.is_directory ? '📁' : '📄';
+    row.appendChild(icon);
+
+    // Label
+    const label = document.createElement('span');
+    label.className = 'tree-label';
+    label.innerText = item.name;
+    row.appendChild(label);
+
+    container.appendChild(row);
+
+    if (item.is_directory) {
+      const childContainer = document.createElement('div');
+      childContainer.className = 'tree-children';
+      childContainer.style.display = 'none';
+      container.appendChild(childContainer);
+
+      let loaded = false;
+      row.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        if (childContainer.style.display === 'none') {
+          childContainer.style.display = 'block';
+          arrow.classList.add('open');
+          if (!loaded) {
+            await renderTree(item.path, childContainer, indentLevel + 1);
+            loaded = true;
+          }
+        } else {
+          childContainer.style.display = 'none';
+          arrow.classList.remove('open');
+        }
+      });
+    } else {
+      // It's a file, clicking opens it
+      row.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.querySelectorAll('.tree-node').forEach(node => node.classList.remove('active'));
+        row.classList.add('active');
+        openFile(item.path, item.name);
+      });
+    }
+  });
 }
 
 async function openFile(path: string, name: string) {
-  // Check if already open
   if (openTabs.has(path)) {
     const tabInfo = openTabs.get(path)!;
     editor.setModel(tabInfo.model);
@@ -123,7 +196,6 @@ async function openFile(path: string, name: string) {
     return;
   }
 
-  // Load content
   const content = await callBackend('fs_read', { path });
   const lang = getLanguageByExtension(name);
   const model = monaco.editor.createModel(content, lang);
@@ -144,19 +216,17 @@ function updateTabsUI() {
     tab.className = `tab ${path === activeTabPath ? 'active' : ''}`;
     tab.innerHTML = `
       <span>${tabInfo.name}</span>
-      <span class="tab-close" id="close-${path.replace(/[^a-zA-Z0-9]/g, '_')}">×</span>
+      <span class="tab-close">×</span>
     `;
 
-    // Click to activate
     tab.addEventListener('click', (e) => {
       const target = e.target as HTMLElement;
-      if (target.classList.contains('tab-close')) return; // Avoid click collision with close button
+      if (target.classList.contains('tab-close')) return;
       editor.setModel(tabInfo.model);
       activeTabPath = path;
       updateTabsUI();
     });
 
-    // Click to close
     tab.querySelector('.tab-close')!.addEventListener('click', (e) => {
       e.stopPropagation();
       openTabs.delete(path);
@@ -167,7 +237,7 @@ function updateTabsUI() {
           editor.setModel(openTabs.get(firstKey)!.model);
         } else {
           activeTabPath = '';
-          editor.setModel(monaco.editor.createModel('// Open a file to start editing.', 'plaintext'));
+          editor.setModel(monaco.editor.createModel('// Bienvenue dans Kadmus Editor\n// Choisis un fichier dans le dossier de travail à gauche.', 'plaintext'));
         }
       }
       updateTabsUI();
@@ -178,38 +248,68 @@ function updateTabsUI() {
 }
 
 // -------------------------------------------------------------
-// Terminal Integration
+// xterm.js Terminal Emulator
 // -------------------------------------------------------------
+let term: Terminal;
+let fitAddon: FitAddon;
+
 async function initTerminal() {
-  const termOutput = document.getElementById('terminal-output')!;
-  termOutput.innerHTML = 'Connecting to POSIX Terminal...';
+  term = new Terminal({
+    theme: {
+      background: '#0a0a0c',
+      foreground: '#c9ccd3',
+      cursor: '#a855f7',
+      black: '#121214',
+      red: '#ef4444',
+      green: '#10b981',
+      yellow: '#f59e0b',
+      blue: '#3b82f6',
+      magenta: '#8b5cf6',
+      cyan: '#06b6d4',
+      white: '#f4f4f5'
+    },
+    fontFamily: 'Fira Code, monospace',
+    fontSize: 12,
+    cursorBlink: true,
+    allowProposedApi: true
+  });
 
-  // Create PTY session on C++ backend
-  const sessionId = await callBackend('term_create', { shell: 'zsh' });
-  if (sessionId !== undefined && sessionId >= 0) {
-    terminalSessionId = sessionId;
-    termOutput.innerHTML = 'Terminal connected.\n';
-  } else {
-    termOutput.innerHTML = 'Failed to spawn PTY session on backend.';
-  }
+  fitAddon = new FitAddon();
+  term.loadAddon(fitAddon);
 
-  // Handle stdin
-  const stdin = document.getElementById('terminal-stdin')! as HTMLInputElement;
-  stdin.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && terminalSessionId >= 0) {
-      const cmd = stdin.value + '\n';
-      stdin.value = '';
-      callBackend('term_write', { id: terminalSessionId, data: cmd });
+  const container = document.getElementById('terminal-container')!;
+  term.open(container);
+  fitAddon.fit();
+
+  // Resize listener
+  window.addEventListener('resize', () => {
+    try {
+      fitAddon.fit();
+    } catch (e) {}
+  });
+
+  // Pipe terminal keyboard events to PTY backend
+  term.onData((data) => {
+    if (terminalSessionId >= 0) {
+      callBackend('term_write', { id: terminalSessionId, data });
     }
   });
+
+  // Spawn session
+  const sessionId = await callBackend('term_create', { shell: 'bash' });
+  if (sessionId !== undefined && sessionId >= 0) {
+    terminalSessionId = sessionId;
+  } else {
+    term.writeln('Failed to spawn terminal process on C++ backend.');
+  }
 }
 
 // -------------------------------------------------------------
-// Git Integration
+// Git Pane Integration
 // -------------------------------------------------------------
 async function loadGitStatus() {
   const list = document.getElementById('git-files-list')!;
-  list.innerHTML = '<div class="loading-label">Reading repo changes...</div>';
+  list.innerHTML = '<div class="loading-label">Scanning repository modifications...</div>';
 
   const files = await callBackend('git_status', { repo_path: '.' });
   if (files && Array.isArray(files)) {
@@ -226,11 +326,10 @@ async function loadGitStatus() {
         <span style="font-family: monospace;">${file.path}</span>
         <span class="git-status-badge ${file.status}">${file.status}</span>
       `;
-      row.addEventListener('click', () => {
-        // Stage the file
-        callBackend('git_stage', { repo_path: '.', file_path: file.path }).then(() => {
-          loadGitStatus(); // Refresh status list
-        });
+      row.addEventListener('click', async () => {
+        // Stage file on click
+        await callBackend('git_stage', { repo_path: '.', file_path: file.path });
+        loadGitStatus();
       });
       list.appendChild(row);
     });
@@ -265,7 +364,7 @@ async function loadExtensions() {
 }
 
 // -------------------------------------------------------------
-// AI Agent Chat Integration
+// Agent Panel
 // -------------------------------------------------------------
 function initAgent() {
   const input = document.getElementById('ai-input')! as HTMLInputElement;
@@ -290,7 +389,7 @@ function initAgent() {
 }
 
 // -------------------------------------------------------------
-// Active Views Navigation (Sidebar Panels toggle)
+// Sidebar Panel Navigation Toggle Hooks
 // -------------------------------------------------------------
 function initViewNavigation() {
   const buttons = ['explorer', 'git', 'extensions'];
@@ -298,7 +397,6 @@ function initViewNavigation() {
   buttons.forEach(view => {
     const btn = document.getElementById(`btn-${view}`)!;
     btn.addEventListener('click', () => {
-      // Toggle active states
       buttons.forEach(v => {
         document.getElementById(`btn-${v}`)!.classList.remove('active');
         document.getElementById(`${v}-view`)!.classList.add('hidden');
@@ -310,13 +408,11 @@ function initViewNavigation() {
       const title = document.getElementById('sidebar-title')!;
       title.innerText = view.toUpperCase();
 
-      // Refresh target views dynamically
       if (view === 'git') loadGitStatus();
       if (view === 'extensions') loadExtensions();
     });
   });
 
-  // AI Agent toggle (Collapses/opens right sidebar)
   const aiBtn = document.getElementById('btn-agent')!;
   const aiPanel = document.getElementById('ai-panel')!;
   aiBtn.addEventListener('click', () => {
@@ -324,13 +420,13 @@ function initViewNavigation() {
     aiPanel.classList.toggle('collapsed');
   });
 
-  // Git Commit hook
+  // Git Commit buttons
   document.getElementById('git-commit-btn')!.addEventListener('click', triggerGitCommit);
   document.getElementById('git-message')!.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && e.ctrlKey) triggerGitCommit();
   });
 
-  // Extension Install hook
+  // VSIX installer buttons
   document.getElementById('ext-install-btn')!.addEventListener('click', async () => {
     const input = document.getElementById('ext-search-input')! as HTMLInputElement;
     const path = input.value.trim();
@@ -340,7 +436,7 @@ function initViewNavigation() {
       if (success) {
         loadExtensions();
       } else {
-        alert('Failed to install VSIX extension package.');
+        alert('Failed to install VSIX.');
       }
     }
   });
@@ -372,39 +468,42 @@ function connectToBackend() {
   socket = new WebSocket(`ws://localhost:9888/?t=${token}`);
 
   socket.onopen = () => {
-    console.log('Connected to C++ Backend Server.');
+    console.log('WebSocket connection established.');
     
-    // Initialize UI
+    // Initialize Monaco, terminal and UI loops
     initMonaco();
     initTerminal();
     initAgent();
     initViewNavigation();
     
-    // Initial loads
-    loadFileExplorer();
+    // Render recursive Tree Explorer starting at workspace root
+    renderTree('.', document.getElementById('explorer-files')!, 0);
+
+    // Initial Lucide Icons Injection
+    createIcons({
+      icons: { Files, GitBranch, Blocks, Sparkles, Check }
+    });
   };
 
   socket.onmessage = (event) => {
     const msg = JSON.parse(event.data);
 
-    // 1. Check if it's a response to a pending request
     if (msg.id !== undefined && pendingRequests.has(msg.id)) {
       const resolve = pendingRequests.get(msg.id)!;
       pendingRequests.delete(msg.id);
       
       if (msg.error) {
-        console.error('API Error:', msg.error.message);
+        console.error('JSON-RPC Error response:', msg.error.message);
         resolve(undefined);
       } else {
         resolve(msg.result);
       }
     }
-    // 2. Check if it's an async notification
+    // Async signals
     else if (msg.method === 'term_output') {
-      const termOutput = document.getElementById('terminal-output')!;
-      termOutput.innerHTML += msg.params.data;
-      const termBody = document.getElementById('terminal-body')!;
-      termBody.scrollTop = termBody.scrollHeight;
+      if (term) {
+        term.write(msg.params.data);
+      }
     }
     else if (msg.method === 'agent_reply') {
       const messages = document.getElementById('ai-messages')!;
@@ -417,9 +516,10 @@ function connectToBackend() {
   };
 
   socket.onclose = () => {
-    console.warn('Disconnected from C++ Backend.');
-    const termOutput = document.getElementById('terminal-output')!;
-    termOutput.innerHTML += '\n*** Connection lost. Please reload the editor window. ***\n';
+    console.warn('WebSocket connection closed.');
+    if (term) {
+      term.writeln('\r\n*** Connection with C++ backend lost. Please restart the server. ***');
+    }
   };
 
   socket.onerror = (err) => {
@@ -427,5 +527,5 @@ function connectToBackend() {
   };
 }
 
-// Start connection
+// Boot connection
 connectToBackend();
