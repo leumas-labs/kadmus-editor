@@ -51,3 +51,15 @@ Pour faire de Kadmus un éditeur "AI-First" entièrement privé et fonctionnel h
   2. Le backend C++ reçoit la requête, la pousse dans une file d'attente d'inférence, et génère les tokens en tâche de fond dans un thread dédié pour ne pas bloquer l'UI.
   3. Les morceaux de texte générés sont poussés en temps réel vers le frontend via WebSocket au format JSON-RPC.
 * **Avantage** : Confidentialité absolue (aucun code ne quitte la machine de l'utilisateur), coûts d'API nuls, et indépendance totale vis-à-vis des connexions réseau.
+
+---
+
+## 6. Opérations Fichiers Sécurisées & Backups (Inspiré de BISSI)
+
+### Concept
+En s'inspirant de la logique du module **`SafeOperator`** développé pour **BISSI** (`~/Dev/Hackathons/gemma4good/bissi/functions/`), nous pouvons implémenter un gardien de fichiers robuste dans notre C++ `FileSystemService` :
+* **Sauvegardes automatiques (Backups)** : Avant chaque écriture destructive (`fs_write`, modification, renommage, suppression), le backend effectue automatiquement une copie de sauvegarde horodatée dans un dossier masqué `.kadmus_backups/` local au fichier d'origine.
+* **Historique d'audit (Audit Trail)** : Tenir un journal JSON local des opérations réussies et échouées, utile pour les audits de sécurité et la traçabilité.
+* **Rollback natif** : Exposer un endpoint JSON-RPC `fs_rollback` permettant de restaurer instantanément un fichier à sa version de sauvegarde précédente en un clic depuis l'UI.
+* **Confirmation par Dialogue** : Pour toute opération destructive (comme supprimer un fichier du workspace), le backend renvoie une demande de confirmation intermédiaire qui bloque l'action jusqu'à ce que l'utilisateur clique sur "Confirmer" sur l'interface graphique.
+* **Avantage** : Sécurité maximale contre les pertes accidentelles de données, protection contre les modifications erronées d'un agent IA autonome, et historique d'annulation (Undo) persistant hors-mémoire.
