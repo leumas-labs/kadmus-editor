@@ -16,6 +16,12 @@
 #include "../include/JSONRPCRouter.hpp"
 #include "../include/WebSocketServer.hpp"
 
+// Conditional inclusion of GTK and WebKitGTK for Linux WebView Window Wrapper
+#ifdef __linux__
+#include <gtk/gtk.h>
+#include <webkit2/webkit2.h>
+#endif
+
 namespace fs = std::filesystem;
 
 std::atomic<bool> keep_running(true);
@@ -24,6 +30,12 @@ void signal_handler(int signal) {
     if (signal == SIGINT || signal == SIGTERM) {
         std::cout << "\n[info] Shutdown signal received. Stopping server..." << std::endl;
         keep_running = false;
+#ifdef __linux__
+        // If GTK loop is running, quit it
+        if (g_main_loop_is_running(g_main_loop_new(NULL, FALSE))) {
+            gtk_main_quit();
+        }
+#endif
     }
 }
 
@@ -55,6 +67,7 @@ struct ServerArgs {
     std::string extensions_dir = "";
     std::string connection_token = "";
     bool accept_any_connection = false;
+    bool server_only = false;
     bool help = false;
 };
 
@@ -74,6 +87,8 @@ ServerArgs parse_arguments(int argc, char* argv[]) {
             args.connection_token = argv[++i];
         } else if (arg == "--without-connection-token") {
             args.accept_any_connection = true;
+        } else if (arg == "--server-only" || arg == "-s") {
+            args.server_only = true;
         } else if (arg == "--help" || arg == "-h") {
             args.help = true;
         }
@@ -82,8 +97,8 @@ ServerArgs parse_arguments(int argc, char* argv[]) {
 }
 
 void print_help() {
-    std::cout << "Interface Studio Server CLI - CEBackend" << std::endl;
-    std::cout << "Usage: ce-backend [options]" << std::endl << std::endl;
+    std::cout << "Kadmus Editor - Unified App & Server" << std::endl;
+    std::cout << "Usage: kadmus [options]" << std::endl << std::endl;
     std::cout << "Options:" << std::endl;
     std::cout << "  --port <port>                 Port to listen on (default: 9888)" << std::endl;
     std::cout << "  --workspace <path>            Path to workspace root (default: current directory)" << std::endl;
@@ -91,8 +106,65 @@ void print_help() {
     std::cout << "  --extensions-dir <path>       Path to extensions folder" << std::endl;
     std::cout << "  --connection-token <token>    Set security token for incoming WebSocket connections" << std::endl;
     std::cout << "  --without-connection-token    Disable token validation (WARNING: unsafe!)" << std::endl;
+    std::cout << "  -s, --server-only             Run backend server headless without opening UI window" << std::endl;
     std::cout << "  -h, --help                    Show help options" << std::endl;
 }
+
+#ifdef __linux__
+// Destroy callback to exit GTK event loop
+static void on_window_destroy(GtkWidget* widget, gpointer data) {
+    std::cout << "[window] Window closed by user. Initiating clean shutdown..." << std::endl;
+    keep_running = false;
+    gtk_main_quit();
+}
+
+void run_webview_window(int port, const std::string& token) {
+    int argc = 0;
+    char** argv = nullptr;
+    
+    // Initialize GTK
+    gtk_init(&argc, &argv);
+
+    // Create main window
+    GtkWidget* main_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    gtk_window_set_title(GTK_WINDOW(main_window), "Kadmus Editor");
+    gtk_window_set_default_size(GTK_WINDOW(main_window), 1280, 800);
+
+    // Create WebKit WebView
+    GtkWidget* web_view = webkit_web_view_new();
+
+    // Enable inspector & local file security bypassing
+    WebKitSettings* settings = webkit_web_view_get_settings(WEBKIT_WEB_VIEW(web_view));
+    webkit_settings_set_enable_developer_extras(settings, TRUE);
+    webkit_settings_set_enable_webgl(settings, TRUE);
+    webkit_settings_set_allow_file_access_from_file_urls(settings, TRUE);
+    webkit_settings_set_allow_universal_access_from_file_urls(settings, TRUE);
+
+    // Determine target URL: load local dist/index.html if built, otherwise fallback to Vite Dev Server
+    std::string url;
+    fs::path dist_path = fs::current_path() / "frontend" / "dist" / "index.html";
+    if (fs::exists(dist_path)) {
+        url = "file://" + fs::canonical(dist_path).string() + "?t=" + token;
+    } else {
+        url = "http://localhost:5173/?t=" + token;
+    }
+
+    std::cout << "[window] Loading WebView target URL: " << url << std::endl;
+    webkit_web_view_load_uri(WEBKIT_WEB_VIEW(web_view), url.c_str());
+
+    // Pack Webview container into window
+    gtk_container_add(GTK_CONTAINER(main_window), web_view);
+
+    // Bind window destroy event
+    g_signal_connect(main_window, "destroy", G_CALLBACK(on_window_destroy), NULL);
+
+    // Show window and all its children
+    gtk_widget_show_all(main_window);
+
+    // Start GTK Event Loop
+    gtk_main();
+}
+#endif
 
 int main(int argc, char* argv[]) {
     // Parse arguments
@@ -123,17 +195,17 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    // Resolve Connection Token Security
+    // Generate security token
     std::string token = "";
     if (!args.accept_any_connection) {
         token = args.connection_token.empty() ? generate_connection_token() : args.connection_token;
     }
 
     // -------------------------------------------------------------
-    // Boot sequence logs (à l'image de VS Code Server)
+    // Boot sequence logs
     // -------------------------------------------------------------
     std::cout << "* " << std::endl;
-    std::cout << "* Interface Studio Web Server (CEBackend)" << std::endl;
+    std::cout << "* Kadmus Editor - Native Application" << std::endl;
     std::cout << "* " << std::endl;
     std::cout << "* Visual Studio Code Server Compatibility Layer" << std::endl;
     std::cout << "* Release: 1.0.0 (Native C++ Engine)" << std::endl;
@@ -170,15 +242,29 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    // Idle loop waiting for SIGINT/SIGTERM
-    while (keep_running) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    // Determine execution mode (headless server-only vs. desktop client window)
+    if (args.server_only) {
+        std::cout << "[info] Running in server-only headless mode." << std::endl;
+        while (keep_running) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+    } else {
+#ifdef __linux__
+        std::cout << "[info] Launching native webview window..." << std::endl;
+        run_webview_window(args.port, token);
+#else
+        std::cout << "[warning] WebView desktop window is only supported on Linux/GTK in this build." << std::endl;
+        std::cout << "[info] Falling back to server-only mode." << std::endl;
+        while (keep_running) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+#endif
     }
 
     // Clean shutdown
     std::cout << "[info] Cleaning up active sessions..." << std::endl;
     server->stop();
-    std::cout << "[info] Server shut down completed." << std::endl;
+    std::cout << "[info] Kadmus Editor shutdown completed." << std::endl;
 
     return 0;
 }
