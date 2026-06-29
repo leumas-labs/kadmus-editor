@@ -115,8 +115,8 @@ std::string base64_encode(const unsigned char* src, size_t len) {
 // WebSocketServer Implementation
 // =====================================================================
 
-WebSocketServer::WebSocketServer(int port, std::shared_ptr<JSONRPCRouter> router)
-    : port_(port), router_(router), is_running_(false), server_fd_(-1) {}
+WebSocketServer::WebSocketServer(int port, std::shared_ptr<JSONRPCRouter> router, const std::string& connection_token)
+    : port_(port), router_(router), connection_token_(connection_token), is_running_(false), server_fd_(-1) {}
 
 WebSocketServer::~WebSocketServer() {
     stop();
@@ -277,6 +277,25 @@ void WebSocketServer::handle_client(int client_fd) {
 }
 
 bool WebSocketServer::perform_handshake(int client_fd, const std::string& request) {
+    // Validate Connection Token if configured
+    if (!connection_token_.empty()) {
+        size_t get_pos = request.find("GET ");
+        if (get_pos != std::string::npos) {
+            size_t end_get = request.find(" HTTP/", get_pos);
+            if (end_get != std::string::npos) {
+                std::string url = request.substr(get_pos + 4, end_get - (get_pos + 4));
+                std::string token_param = "t=" + connection_token_;
+                std::string recon_param = "reconnectionToken=" + connection_token_;
+                if (url.find(token_param) == std::string::npos && url.find(recon_param) == std::string::npos) {
+                    std::string forbidden_resp = "HTTP/1.1 403 Forbidden\r\nConnection: close\r\nContent-Type: text/plain\r\n\r\nUnauthorized: Invalid connection token.\r\n";
+                    send(client_fd, forbidden_resp.data(), forbidden_resp.size(), 0);
+                    std::cerr << "Unauthorized WebSocket connection attempt blocked (missing or invalid token)." << std::endl;
+                    return false;
+                }
+            }
+        }
+    }
+
     std::string key_header = "Sec-WebSocket-Key: ";
     size_t key_pos = request.find(key_header);
     if (key_pos == std::string::npos) return false;

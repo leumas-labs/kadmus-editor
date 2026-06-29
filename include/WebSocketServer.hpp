@@ -18,7 +18,7 @@
 // A self-contained C++ WebSocket Server implementing RFC 6455
 class WebSocketServer {
 public:
-    WebSocketServer(int port, std::shared_ptr<JSONRPCRouter> router);
+    WebSocketServer(int port, std::shared_ptr<JSONRPCRouter> router, const std::string& connection_token = "");
     ~WebSocketServer();
 
     // Start the server socket listener (runs in a separate background thread)
@@ -33,6 +33,7 @@ public:
 private:
     int port_;
     std::shared_ptr<JSONRPCRouter> router_;
+    std::string connection_token_;
     std::atomic<bool> is_running_;
     std::thread listen_thread_;
 
