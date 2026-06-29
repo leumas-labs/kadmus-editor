@@ -11,6 +11,7 @@
 #include "../include/FileSystemService.hpp"
 #include "../include/TerminalManager.hpp"
 #include "../include/AgentService.hpp"
+#include "../include/GitService.hpp"
 #include "../include/JSONRPCRouter.hpp"
 #include "../include/WebSocketServer.hpp"
 
@@ -155,9 +156,10 @@ int main(int argc, char* argv[]) {
     auto fs_service = std::make_shared<FileSystemService>(workspace_path);
     auto term_manager = std::make_shared<TerminalManager>();
     auto agent_service = std::make_shared<AgentService>();
+    auto git_service = std::make_shared<GitService>();
 
     // Instantiate JSONRPCRouter
-    auto router = std::make_shared<JSONRPCRouter>(fs_service, term_manager, agent_service);
+    auto router = std::make_shared<JSONRPCRouter>(fs_service, term_manager, agent_service, git_service);
 
     // Instantiate and start WebSocket Server
     auto server = std::make_unique<WebSocketServer>(args.port, router, token);

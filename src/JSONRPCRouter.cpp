@@ -7,8 +7,9 @@ using json = nlohmann::json;
 JSONRPCRouter::JSONRPCRouter(
     std::shared_ptr<FileSystemService> fs_service,
     std::shared_ptr<TerminalManager> term_manager,
-    std::shared_ptr<AgentService> agent_service
-) : fs_service_(fs_service), term_manager_(term_manager), agent_service_(agent_service) {}
+    std::shared_ptr<AgentService> agent_service,
+    std::shared_ptr<GitService> git_service
+) : fs_service_(fs_service), term_manager_(term_manager), agent_service_(agent_service), git_service_(git_service) {}
 
 JSONRPCRouter::~JSONRPCRouter() {}
 
@@ -99,6 +100,32 @@ std::string JSONRPCRouter::handle_request(const std::string& raw_json, std::func
             });
             
             return make_response(true);
+        }
+        else if (method == "git_status") {
+            std::string repo_path = req["params"].value("repo_path", "");
+            auto files = git_service_->get_status(repo_path);
+            json arr = json::array();
+            for (const auto& file : files) {
+                arr.push_back({
+                    {"path", file.path},
+                    {"status", file.status}
+                });
+            }
+            return make_response(arr);
+        }
+        else if (method == "git_stage") {
+            std::string repo_path = req["params"].value("repo_path", "");
+            std::string file_path = req["params"].value("file_path", "");
+            bool success = git_service_->stage_file(repo_path, file_path);
+            return make_response(success);
+        }
+        else if (method == "git_commit") {
+            std::string repo_path = req["params"].value("repo_path", "");
+            std::string message = req["params"].value("message", "");
+            std::string author_name = req["params"].value("author_name", "Samuel Yevi");
+            std::string author_email = req["params"].value("author_email", "samuel@leumas-labs.com");
+            bool success = git_service_->commit(repo_path, message, author_name, author_email);
+            return make_response(success);
         }
 
         return make_response("Method not found: " + method, true);

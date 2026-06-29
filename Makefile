@@ -4,9 +4,9 @@ CXX = g++
 CXXFLAGS = -O3 -std=c++20 -I./include
 
 ifeq ($(UNAME_S),Linux)
-    LIBS = -pthread -lutil
+    LIBS = -pthread -lutil -lgit2
 else
-    LIBS = -pthread
+    LIBS = -pthread -lgit2
 endif
 
 TARGET = ce-backend
@@ -15,7 +15,8 @@ SRC = src/main.cpp \
       src/TerminalManager.cpp \
       src/AgentService.cpp \
       src/JSONRPCRouter.cpp \
-      src/WebSocketServer.cpp
+      src/WebSocketServer.cpp \
+      src/GitService.cpp
 
 all: $(TARGET)
 
