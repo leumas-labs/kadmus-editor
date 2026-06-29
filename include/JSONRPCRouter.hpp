@@ -7,6 +7,7 @@
 #include "TerminalManager.hpp"
 #include "AgentService.hpp"
 #include "GitService.hpp"
+#include "ExtensionService.hpp"
 
 // Route and parse JSON-RPC messages from the WebSocket client
 class JSONRPCRouter {
@@ -15,7 +16,8 @@ public:
         std::shared_ptr<FileSystemService> fs_service,
         std::shared_ptr<TerminalManager> term_manager,
         std::shared_ptr<AgentService> agent_service,
-        std::shared_ptr<GitService> git_service
+        std::shared_ptr<GitService> git_service,
+        std::shared_ptr<ExtensionService> ext_service
     );
     ~JSONRPCRouter();
 
@@ -27,4 +29,5 @@ private:
     std::shared_ptr<TerminalManager> term_manager_;
     std::shared_ptr<AgentService> agent_service_;
     std::shared_ptr<GitService> git_service_;
+    std::shared_ptr<ExtensionService> ext_service_;
 };

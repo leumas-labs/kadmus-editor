@@ -7,6 +7,7 @@
 #include "../include/TerminalManager.hpp"
 #include "../include/AgentService.hpp"
 #include "../include/GitService.hpp"
+#include "../include/ExtensionService.hpp"
 #include "../include/JSONRPCRouter.hpp"
 
 using json = nlohmann::json;
@@ -88,9 +89,10 @@ int main() {
     auto term_manager = std::make_shared<TerminalManager>();
     auto agent_service = std::make_shared<AgentService>();
     auto git_service = std::make_shared<GitService>();
+    auto ext_service = std::make_shared<ExtensionService>("./extensions");
 
     // Instantiate Router
-    auto router = std::make_shared<JSONRPCRouter>(fs_service, term_manager, agent_service, git_service);
+    auto router = std::make_shared<JSONRPCRouter>(fs_service, term_manager, agent_service, git_service, ext_service);
 
     try {
         // Run tests

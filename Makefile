@@ -18,7 +18,8 @@ SRC = src/main.cpp \
       src/AgentService.cpp \
       src/JSONRPCRouter.cpp \
       src/WebSocketServer.cpp \
-      src/GitService.cpp
+      src/GitService.cpp \
+      src/ExtensionService.cpp
 
 TEST_SRC = src/test.cpp \
            src/FileSystemService.cpp \
@@ -26,7 +27,8 @@ TEST_SRC = src/test.cpp \
            src/AgentService.cpp \
            src/JSONRPCRouter.cpp \
            src/WebSocketServer.cpp \
-           src/GitService.cpp
+           src/GitService.cpp \
+           src/ExtensionService.cpp
 
 all: $(TARGET)
 

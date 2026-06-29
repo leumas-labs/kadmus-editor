@@ -8,8 +8,9 @@ JSONRPCRouter::JSONRPCRouter(
     std::shared_ptr<FileSystemService> fs_service,
     std::shared_ptr<TerminalManager> term_manager,
     std::shared_ptr<AgentService> agent_service,
-    std::shared_ptr<GitService> git_service
-) : fs_service_(fs_service), term_manager_(term_manager), agent_service_(agent_service), git_service_(git_service) {}
+    std::shared_ptr<GitService> git_service,
+    std::shared_ptr<ExtensionService> ext_service
+) : fs_service_(fs_service), term_manager_(term_manager), agent_service_(agent_service), git_service_(git_service), ext_service_(ext_service) {}
 
 JSONRPCRouter::~JSONRPCRouter() {}
 
@@ -125,6 +126,25 @@ std::string JSONRPCRouter::handle_request(const std::string& raw_json, std::func
             std::string author_name = req["params"].value("author_name", "Samuel Yevi");
             std::string author_email = req["params"].value("author_email", "samuel@leumas-labs.com");
             bool success = git_service_->commit(repo_path, message, author_name, author_email);
+            return make_response(success);
+        }
+        else if (method == "extension_list") {
+            auto exts = ext_service_->scan_extensions();
+            json arr = json::array();
+            for (const auto& ext : exts) {
+                arr.push_back({
+                    {"id", ext.id},
+                    {"name", ext.name},
+                    {"version", ext.version},
+                    {"path", ext.path},
+                    {"contributions", ext.contributions}
+                });
+            }
+            return make_response(arr);
+        }
+        else if (method == "extension_install") {
+            std::string vsix_path = req["params"].value("vsix_path", "");
+            bool success = ext_service_->install_extension(vsix_path);
             return make_response(success);
         }
 
