@@ -30,7 +30,7 @@ std::string JSONRPCRouter::handle_request(const std::string& raw_json, std::func
                 resp["result"] = result;
             }
             resp["id"] = id;
-            return resp.dump();
+            return resp.dump(-1, ' ', false, json::error_handler_t::replace);
         };
 
         if (method == "fs_list") {
@@ -67,7 +67,7 @@ std::string JSONRPCRouter::handle_request(const std::string& raw_json, std::func
                 notif["jsonrpc"] = "2.0";
                 notif["method"] = "term_output";
                 notif["params"] = {{"data", data}};
-                send_to_client_cb(notif.dump());
+                send_to_client_cb(notif.dump(-1, ' ', false, json::error_handler_t::replace));
             });
 
             if (session_id < 0) {
@@ -97,7 +97,7 @@ std::string JSONRPCRouter::handle_request(const std::string& raw_json, std::func
                 notif["jsonrpc"] = "2.0";
                 notif["method"] = "agent_reply";
                 notif["params"] = {{"session_id", session_id}, {"message", reply}};
-                send_to_client_cb(notif.dump());
+                send_to_client_cb(notif.dump(-1, ' ', false, json::error_handler_t::replace));
             });
             
             return make_response(true);
@@ -155,6 +155,6 @@ std::string JSONRPCRouter::handle_request(const std::string& raw_json, std::func
         resp["jsonrpc"] = "2.0";
         resp["error"] = {{"code", -32700}, {"message", std::string("Parse error: ") + e.what()}};
         resp["id"] = nullptr;
-        return resp.dump();
+        return resp.dump(-1, ' ', false, json::error_handler_t::replace);
     }
 }
