@@ -1,0 +1,33 @@
+{
+  "ai": {
+    "enabled": true,
+    "endpoint": "",
+    "provider": "mock"
+  },
+  "editor": {
+    "fontSize": 14,
+    "insertSpaces": true,
+    "minimap": {
+      "visible": true
+    },
+    "renderWhitespace": "none",
+    "tabSize": 4,
+    "wordWrap": "off"
+  },
+  "linter": {
+    "python": {
+      "enabled": true,
+      "path": "",
+      "provider": "ruff"
+    }
+  },
+  "terminal": {
+    "fontSize": 12,
+    "scrollback": 1000,
+    "shell": "/bin/bash"
+  },
+  "theme": {
+    "name": "azure",
+    "transparency": true
+  }
+}

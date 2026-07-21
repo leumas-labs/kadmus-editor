@@ -4,7 +4,7 @@ CXX = g++
 CXXFLAGS = -O3 -std=c++20 -I./include
 
 ifeq ($(UNAME_S),Linux)
-    LIBS = -pthread -lutil -lgit2 $(shell pkg-config --cflags --libs gtk+-3.0 webkit2gtk-4.1)
+    LIBS = -pthread -lutil -lgit2 -lX11 $(shell pkg-config --cflags --libs gtk+-3.0 webkit2gtk-4.1)
 else
     LIBS = -pthread -lgit2
 endif

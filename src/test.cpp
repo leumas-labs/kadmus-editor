@@ -8,6 +8,8 @@
 #include "../include/AgentService.hpp"
 #include "../include/GitService.hpp"
 #include "../include/ExtensionService.hpp"
+#include "../include/SettingsService.hpp"
+#include "../include/LanguageServerProtocol.hpp"
 #include "../include/JSONRPCRouter.hpp"
 
 using json = nlohmann::json;
@@ -90,9 +92,13 @@ int main() {
     auto agent_service = std::make_shared<AgentService>();
     auto git_service = std::make_shared<GitService>();
     auto ext_service = std::make_shared<ExtensionService>("./extensions");
+    auto settings_service = std::make_shared<SettingsService>("./data");
+    auto lsp_service = std::make_shared<LspService>(settings_service);
 
     // Instantiate Router
-    auto router = std::make_shared<JSONRPCRouter>(fs_service, term_manager, agent_service, git_service, ext_service);
+    auto router = std::make_shared<JSONRPCRouter>(
+        fs_service, term_manager, agent_service, git_service, ext_service, settings_service, lsp_service
+    );
 
     try {
         // Run tests

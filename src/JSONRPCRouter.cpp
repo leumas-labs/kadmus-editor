@@ -4,6 +4,14 @@
 
 using json = nlohmann::json;
 
+#ifndef _WIN32
+__attribute__((weak)) void trigger_window_minimize() {}
+__attribute__((weak)) void trigger_window_maximize() {}
+__attribute__((weak)) void trigger_window_close() {}
+__attribute__((weak)) void trigger_window_drag() {}
+__attribute__((weak)) void set_drag_zone_active(bool active) {}
+#endif
+
 JSONRPCRouter::JSONRPCRouter(
     std::shared_ptr<FileSystemService> fs_service,
     std::shared_ptr<TerminalManager> term_manager,

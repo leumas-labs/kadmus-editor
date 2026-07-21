@@ -194,13 +194,6 @@ void WebSocketServer::stop() {
             listen_thread_.join();
         }
 
-        for (auto& t : client_threads_) {
-            if (t.joinable()) {
-                t.join();
-            }
-        }
-        client_threads_.clear();
-
 #ifdef _WIN32
         WSACleanup();
 #endif
@@ -225,8 +218,8 @@ void WebSocketServer::listen_loop() {
             break;
         }
 
-        // Spawn a thread to handle client messages
-        client_threads_.push_back(std::thread(&WebSocketServer::handle_client, this, client_fd));
+        // Spawn a detached thread to handle client messages safely
+        std::thread(&WebSocketServer::handle_client, this, client_fd).detach();
     }
 }
 

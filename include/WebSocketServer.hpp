@@ -45,7 +45,6 @@ private:
     int server_fd_;
 #endif
 
-    std::vector<std::thread> client_threads_;
     std::set<int> client_fds_;
     std::mutex clients_mutex_;
 

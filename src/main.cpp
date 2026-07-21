@@ -20,6 +20,7 @@
 
 // Conditional inclusion of GTK and WebKitGTK for Linux WebView Window Wrapper
 #ifdef __linux__
+#include <X11/Xlib.h>
 #include <gtk/gtk.h>
 #include <webkit2/webkit2.h>
 #endif
@@ -28,15 +29,21 @@ namespace fs = std::filesystem;
 
 std::atomic<bool> keep_running(true);
 
+#ifdef __linux__
+static gboolean signal_quit_gtk(gpointer data) {
+    if (gtk_main_level() > 0) {
+        gtk_main_quit();
+    }
+    return FALSE;
+}
+#endif
+
 void signal_handler(int signal) {
     if (signal == SIGINT || signal == SIGTERM) {
         std::cout << "\n[info] Shutdown signal received. Stopping server..." << std::endl;
         keep_running = false;
 #ifdef __linux__
-        // If GTK loop is running, quit it
-        if (gtk_main_level() > 0) {
-            gtk_main_quit();
-        }
+        g_idle_add(signal_quit_gtk, nullptr);
 #endif
     }
 }
@@ -206,12 +213,12 @@ static void on_window_destroy(GtkWidget* widget, gpointer data) {
     gtk_main_quit();
 }
 
-void run_webview_window(int port, const std::string& token, bool dev_mode) {
-    int argc = 0;
-    char** argv = nullptr;
-    
-    // Initialize GTK
-    gtk_init(&argc, &argv);
+void run_webview_window(int argc, char* argv[], int port, const std::string& token, bool dev_mode) {
+    // Initialize GTK with real command line args
+    if (!gtk_init_check(&argc, &argv)) {
+        std::cerr << "[error] Failed to initialize GTK display connection." << std::endl;
+        return;
+    }
 
     // Create main window
     GtkWidget* main_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
@@ -286,6 +293,10 @@ void trigger_window_drag() {}
 #endif
 
 int main(int argc, char* argv[]) {
+#ifdef __linux__
+    XInitThreads();
+#endif
+
     // Parse arguments
     ServerArgs args = parse_arguments(argc, argv);
     if (args.help) {
@@ -374,7 +385,7 @@ int main(int argc, char* argv[]) {
     } else {
 #ifdef __linux__
         std::cout << "[info] Launching native webview window..." << std::endl;
-        run_webview_window(args.port, token, args.dev);
+        run_webview_window(argc, argv, args.port, token, args.dev);
 #else
         std::cout << "[warning] WebView desktop window is only supported on Linux/GTK in this build." << std::endl;
         std::cout << "[info] Falling back to server-only mode." << std::endl;
