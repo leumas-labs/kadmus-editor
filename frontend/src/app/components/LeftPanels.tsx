@@ -14,12 +14,18 @@ export function RealFileTree({
   parentPath = ".",
   depth = 0,
   activePath,
-  onSelect
+  onSelect,
+  filterQuery = "",
+  showHidden = false,
+  refreshTrigger = 0,
 }: {
   parentPath?: string;
   depth?: number;
   activePath: string;
   onSelect: (path: string) => void;
+  filterQuery?: string;
+  showHidden?: boolean;
+  refreshTrigger?: number;
 }) {
   const [nodes, setNodes] = useState<FileNode[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -28,17 +34,27 @@ export function RealFileTree({
     async function fetchFiles() {
       const items = await callBackend('fs_list', { path: parentPath });
       if (items && Array.isArray(items)) {
+        // Filter out .git and hidden files unless showHidden is true
+        const filtered = items.filter((item: FileNode) => {
+          if (!showHidden && item.name === ".git") return false;
+          if (filterQuery.trim()) {
+            const match = item.name.toLowerCase().includes(filterQuery.toLowerCase());
+            return item.is_directory || match;
+          }
+          return true;
+        });
+
         // Sort: directories first, then alphabetical
-        items.sort((a: FileNode, b: FileNode) => {
+        filtered.sort((a: FileNode, b: FileNode) => {
           if (a.is_directory && !b.is_directory) return -1;
           if (!a.is_directory && b.is_directory) return 1;
           return a.name.localeCompare(b.name);
         });
-        setNodes(items);
+        setNodes(filtered);
       }
     }
     fetchFiles();
-  }, [parentPath]);
+  }, [parentPath, showHidden, filterQuery, refreshTrigger]);
 
   const toggleDirectory = (path: string) => {
     setExpanded(prev => {
@@ -57,24 +73,30 @@ export function RealFileTree({
       {nodes.map(node => {
         const full = node.path.startsWith("./") ? node.path.substring(2) : node.path;
         const isActive = !node.is_directory && full === activePath;
+        const isExpanded = expanded.has(full);
+
         return (
-          <div key={full}>
+          <div key={full} style={{ position: "relative" }}>
             <div
               onClick={() => node.is_directory ? toggleDirectory(full) : onSelect(full)}
               className="group"
               style={{
                 display: "flex", alignItems: "center", gap: 6,
-                paddingLeft: 12 + depth * 12, paddingTop: 3, paddingBottom: 3, paddingRight: 8,
+                paddingLeft: 12 + depth * 12, paddingTop: 3.5, paddingBottom: 3.5, paddingRight: 8,
                 background: isActive ? `${C.sienna}18` : "transparent",
                 borderLeft: `2px solid ${isActive ? C.sienna : "transparent"}`,
                 cursor: "pointer", userSelect: "none",
+                transition: "background 0.12s, border-color 0.12s",
               }}
-              onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = `${C.text}05`; }}
+              onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = `${C.text}08`; }}
               onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
             >
               {node.is_directory ? (
-                <Ic name={expanded.has(full) ? "chevron-down" : "chevron-right"}
-                  size={11} color={C.muted} style={{ width: 11 }} />
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <Ic name={isExpanded ? "chevron-down" : "chevron-right"}
+                    size={11} color={C.muted} style={{ width: 11 }} />
+                  <Ic name={isExpanded ? "folder-opened" : "folder"} size={13} color={C.amber} />
+                </div>
               ) : (
                 <FileIcon filename={node.name} size={14} />
               )}
@@ -84,11 +106,25 @@ export function RealFileTree({
                 color: isActive ? C.text : (node.is_directory ? C.text : C.muted),
                 fontWeight: node.is_directory ? 500 : 400,
                 overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                flex: 1,
               }}>{node.name}</span>
             </div>
-            {node.is_directory && expanded.has(full) && (
-              <RealFileTree parentPath={full} depth={depth + 1}
-                activePath={activePath} onSelect={onSelect} />
+
+            {node.is_directory && isExpanded && (
+              <div style={{
+                borderLeft: depth > 0 ? `1px solid ${C.line}40` : "none",
+                marginLeft: depth > 0 ? (12 + depth * 12 + 5) : 0,
+              }}>
+                <RealFileTree
+                  parentPath={full}
+                  depth={depth + 1}
+                  activePath={activePath}
+                  onSelect={onSelect}
+                  filterQuery={filterQuery}
+                  showHidden={showHidden}
+                  refreshTrigger={refreshTrigger}
+                />
+              </div>
             )}
           </div>
         );
@@ -103,37 +139,129 @@ export function RepoPanel({ activePath, onSelect }: {
   expanded: Set<string>; onToggle: (n: string) => void;
   activePath: string; onSelect: (n: string) => void;
 }) {
+  const [filterQuery, setFilterQuery] = useState("");
+  const [showHidden, setShowHidden] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const handleRefresh = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
+
+  const handleCreateFile = async () => {
+    const filename = prompt("Enter new filename:");
+    if (!filename || !filename.trim()) return;
+    await callBackend('fs_write', { path: filename.trim(), content: "" });
+    setRefreshTrigger(prev => prev + 1);
+    onSelect(filename.trim());
+  };
+
   return (
     <>
-      <div style={{ padding: "14px 16px 10px" }}>
+      {/* ── Explorer Title & Quick Action Buttons ── */}
+      <div style={{
+        padding: "14px 16px 10px",
+        display: "flex", alignItems: "center", justifyContent: "space-between"
+      }}>
         <PanelTitle sub="signal-core · main">Explorer</PanelTitle>
+        <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+          <button
+            title="New File"
+            onClick={handleCreateFile}
+            style={{
+              width: 22, height: 22, borderRadius: 4,
+              background: "transparent", border: "none", color: C.muted,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              cursor: "pointer", transition: "all 0.15s",
+            }}
+            onMouseEnter={e => (e.currentTarget.style.color = C.text)}
+            onMouseLeave={e => (e.currentTarget.style.color = C.muted)}
+          >
+            <Ic name="new-file" size={12} color={C.muted} />
+          </button>
+          <button
+            title={showHidden ? "Hide Hidden Files (.git)" : "Show Hidden Files (.git)"}
+            onClick={() => setShowHidden(prev => !prev)}
+            style={{
+              width: 22, height: 22, borderRadius: 4,
+              background: showHidden ? `${C.sienna}20` : "transparent",
+              border: "none", color: showHidden ? C.sienna : C.muted,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              cursor: "pointer", transition: "all 0.15s",
+            }}
+            onMouseEnter={e => (e.currentTarget.style.color = C.text)}
+            onMouseLeave={e => (e.currentTarget.style.color = showHidden ? C.sienna : C.muted)}
+          >
+            <Ic name={showHidden ? "eye" : "eye-closed"} size={12} />
+          </button>
+          <button
+            title="Refresh File Tree"
+            onClick={handleRefresh}
+            style={{
+              width: 22, height: 22, borderRadius: 4,
+              background: "transparent", border: "none", color: C.muted,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              cursor: "pointer", transition: "all 0.15s",
+            }}
+            onMouseEnter={e => (e.currentTarget.style.color = C.text)}
+            onMouseLeave={e => (e.currentTarget.style.color = C.muted)}
+          >
+            <Ic name="refresh" size={12} color={C.muted} />
+          </button>
+        </div>
       </div>
+
+      {/* ── Search Filter Input Bar ── */}
       <div style={{ padding: "0 12px 8px" }}>
         <div style={{
           display: "flex", alignItems: "center", gap: 8, padding: "5px 8px",
           background: C.panel, border: `1px solid ${C.line}`, borderRadius: 5,
         }}>
           <Ic name="search" size={11} color={C.subtle} />
-          <input placeholder="Filter files…"
+          <input
+            placeholder="Filter files…"
+            value={filterQuery}
+            onChange={e => setFilterQuery(e.target.value)}
             style={{
               flex: 1, background: "transparent", outline: "none", border: "none",
               color: C.text, fontSize: 12, fontFamily: "'JetBrains Mono', monospace",
-            }} />
+            }}
+          />
+          {filterQuery && (
+            <button
+              onClick={() => setFilterQuery("")}
+              style={{
+                background: "transparent", border: "none", color: C.subtle,
+                cursor: "pointer", padding: 0, display: "flex", alignItems: "center"
+              }}
+            >
+              <Ic name="close" size={10} color={C.subtle} />
+            </button>
+          )}
         </div>
       </div>
+
+      {/* ── Realtime File Tree List ── */}
       <div className="sb" style={{ flex: 1, overflowY: "auto", paddingTop: 2 }}>
-        <RealFileTree activePath={activePath} onSelect={onSelect} />
+        <RealFileTree
+          activePath={activePath}
+          onSelect={onSelect}
+          filterQuery={filterQuery}
+          showHidden={showHidden}
+          refreshTrigger={refreshTrigger}
+        />
       </div>
+
+      {/* ── High-Tech Developer Runtime Telemetry Status ── */}
       <div style={{ padding: "10px 14px", borderTop: `1px solid ${C.line}`, background: C.panel }}>
-        <SectionLabel dim>This session</SectionLabel>
+        <SectionLabel dim>ENVIRONMENT & RUNTIME</SectionLabel>
         <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 5 }}>
           {[
-            { label: "Files loaded dynamically",     color: C.ink   },
-            { label: "Git connected natively",      color: C.rust  },
-            { label: "PTY shell synchronized", color: C.sage  },
+            { label: "Git Native Host · main", icon: "git-branch", color: C.sienna },
+            { label: "PTY Shell · Bash 5.2", icon: "terminal", color: C.sage },
+            { label: "C++20 Engine · WebKitGTK", icon: "server-process", color: C.ink },
           ].map((s, i) => (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 7 }}>
-              <span style={{ width: 4, height: 4, borderRadius: "50%", background: s.color }} />
+              <Ic name={s.icon} size={11} color={s.color} />
               <span style={{ fontSize: 11, color: C.muted, fontFamily: "'JetBrains Mono', monospace" }}>
                 {s.label}
               </span>
