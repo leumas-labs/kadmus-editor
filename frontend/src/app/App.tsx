@@ -398,235 +398,30 @@ export default function App() {
           }
         `}</style>
 
-        {/* ── TOP BAR ── */}
+        {/* ── TOPBAR 1: WINDOW TITLEBAR ── */}
         <div 
           onMouseMove={handleMouseMoveTopbar}
           onMouseLeave={handleMouseLeaveTopbar}
           style={{
-            display: "flex", alignItems: "center", flexShrink: 0,
-            height: 30, background: C.base, borderBottom: `1px solid ${C.line}`,
-            padding: "0 12px", gap: 8, userSelect: "none"
+            display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0,
+            height: 28, background: C.base, borderBottom: `1px solid ${C.line}`,
+            padding: "0 12px", userSelect: "none"
           }}
         >
-          {/* Brand with 'K inside circle' Copyright-like SVG */}
-          <div style={{ display: "flex", alignItems: "center", flexShrink: 0, paddingLeft: 4, color: C.sienna }} className="no-drag">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
-              <text x="12" y="16" fontFamily="'Inter', sans-serif" fontWeight="800" fontSize="12" fill="currentColor" textAnchor="middle">K</text>
-            </svg>
-          </div>
-
-          {/* Search / Command trigger */}
-          <div style={{ flex: 1, minWidth: 120, display: "flex", justifyContent: "center" }} className="no-drag">
-            <button
-              onClick={() => setShowCmd(true)}
-              style={{
-                width: "100%", maxWidth: 320,
-                display: "flex", alignItems: "center", gap: 6,
-                padding: "2px 8px", borderRadius: 5,
-                background: C.panel, border: `1px solid ${C.line}`,
-                cursor: "pointer", transition: "all 0.15s",
-                fontFamily: "'Inter', sans-serif",
-                height: 22,
-              }}
-              onMouseEnter={e => {
-                (e.currentTarget as HTMLElement).style.borderColor = `${C.sienna}50`;
-                (e.currentTarget as HTMLElement).style.background = C.surface;
-              }}
-              onMouseLeave={e => {
-                (e.currentTarget as HTMLElement).style.borderColor = C.line;
-                (e.currentTarget as HTMLElement).style.background = C.panel;
-              }}>
-              <Ic name="search" size={10} color={C.muted} />
-              <span style={{ fontSize: 13, color: C.muted, flex: 1, textAlign: "left" }}>
-                Jump to file, symbol, or ask Kadmus…
-              </span>
-              <span style={{
-                fontSize: 11, color: C.subtle, fontFamily: "'JetBrains Mono', monospace",
-                padding: "0 3px", borderRadius: 3,
-                background: C.base, border: `1px solid ${C.line}`,
-              }}>⌘K</span>
-            </button>
-          </div>
-
-          {/* Presence */}
-          <div style={{ display: "flex", alignItems: "center", gap: 2, flexShrink: 0 }} className="no-drag">
-            {[
-              { i: "A", c: C.sage,   at: "signal.ts:14" },
-              { i: "M", c: C.ink,    at: "queue.ts:8"   },
-            ].map((p, i) => (
-              <div key={i} title={`${p.i} · ${p.at}`}
-                style={{
-                  width: 18, height: 18, borderRadius: "50%",
-                  background: `${p.c}22`, border: `1.2px solid ${p.c}`,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 11, fontWeight: 600, color: p.c,
-                  marginLeft: i > 0 ? -4 : 0, cursor: "pointer",
-                }}>{p.i}</div>
-            ))}
-            <button style={{
-              width: 18, height: 18, borderRadius: "50%",
-              background: "transparent", border: `1.2px dashed ${C.line}`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              color: C.subtle, cursor: "pointer", marginLeft: -4,
-            }}>
-              <Ic name="add" size={9} />
-            </button>
-          </div>
-
-          {/* Talk with Selena Sparkle button */}
-          <button
-            title="Talk with Selena"
-            aria-label="Talk with Selena"
-            onClick={openSelenaSession}
-            style={{
-              height: 18,
-              display: "flex", alignItems: "center", gap: 4,
-              padding: 0,
-              background: "transparent",
-              border: "none",
-              color: C.sage,
-              cursor: "pointer",
-              flexShrink: 0,
-              fontFamily: "'Inter', sans-serif",
-            }}
-            className="selena-cta no-drag"
-          >
-            <Sparkles size={12} strokeWidth={2.5} aria-hidden="true" focusable="false" style={{ flexShrink: 0, display: "block" }} />
-            <span className="selena-cta-label" style={{ fontSize: 12, fontWeight: 600, color: C.sage }}>
-              Talk with Selena
+          {/* Brand with 'K inside circle' Logo & Title */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }} className="no-drag">
+            <div style={{ display: "flex", alignItems: "center", color: C.sienna }}>
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
+                <text x="12" y="16" fontFamily="'Inter', sans-serif" fontWeight="800" fontSize="12" fill="currentColor" textAnchor="middle">K</text>
+              </svg>
+            </div>
+            <span style={{ fontSize: 12, fontWeight: 600, color: C.muted, fontFamily: "'Inter', sans-serif", letterSpacing: "0.02em" }}>
+              Kadmus Editor
             </span>
-          </button>
-
-          <div style={{ width: 1, height: 12, background: C.line }} className="no-drag" />
-
-          {/* Project Branch indicator */}
-          <div style={{ display: "flex", alignItems: "center", gap: 5 }} className="no-drag">
-            <Ic name="git-branch" size={10} color={C.muted} />
-            <span style={{
-              fontSize: 13, color: C.text,
-              fontFamily: "'JetBrains Mono', monospace",
-            }}>{gitBranch}</span>
-            <span style={{
-              fontSize: 12, color: C.rust,
-              fontFamily: "'JetBrains Mono', monospace",
-            }}>↑1</span>
-            <div style={{ width: 1, height: 12, background: C.line }} />
-            <span style={{ width: 4, height: 4, borderRadius: "50%",
-              background: C.amber }} className="pulse" />
           </div>
 
-          {/* Terminal quick toggle */}
-          <button title="Toggle Terminal ⌃`"
-            onClick={() => setShowTerminal(v => !v)}
-            style={{
-              width: 24, height: 24, borderRadius: 5,
-              background: showTerminal ? `${C.sienna}18` : "transparent",
-              border: `1px solid ${showTerminal ? C.sienna : C.line}`,
-              color: showTerminal ? C.sienna : C.muted,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              cursor: "pointer", flexShrink: 0,
-            }}
-            className="no-drag"
-          >
-            <Ic name="terminal" size={12} color={showTerminal ? C.sienna : C.muted} />
-          </button>
-
-          {/* Run/Build */}
-          <button title="Run Project ⌘R" 
-            style={{
-              padding: "0 8px", borderRadius: 5,
-              background: C.sage, color: C.base,
-              border: "none", cursor: "pointer",
-              fontSize: 13, fontWeight: 600,
-              fontFamily: "'Inter', sans-serif",
-              flexShrink: 0,
-              display: "flex", alignItems: "center", gap: 4,
-              height: 24,
-            }}
-            className="no-drag"
-          >
-            <Ic name="play" size={9} color={C.base} />
-            Run
-          </button>
-
-          {/* Account */}
-          <button title="Account" style={{
-            width: 24, height: 24, borderRadius: 5,
-            background: "transparent",
-            border: `1px solid ${C.line}`,
-            color: C.muted,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            cursor: "pointer", flexShrink: 0,
-          }}
-          className="no-drag"
-          >
-            <Ic name="account" size={11} />
-          </button>
-
-          {/* Settings / Theme selector dropdown */}
-          <div style={{ position: "relative", display: "flex", alignItems: "center" }} className="no-drag">
-            <button title="Settings ⌘,"
-              onClick={() => setShowSettingsDropdown(v => !v)}
-              style={{
-                width: 24, height: 24, borderRadius: 5,
-                background: "transparent",
-                border: `1px solid ${C.line}`,
-                color: C.muted,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                cursor: "pointer", flexShrink: 0,
-              }}
-            >
-              <Ic name="settings-gear" size={12} />
-            </button>
-            
-            {showSettingsDropdown && (
-              <div style={{
-                position: "absolute", right: 0, top: 30, zIndex: 1000,
-                background: C.surface, border: `1px solid ${C.line}`,
-                borderRadius: 6, padding: 4, width: 180,
-                boxShadow: `0 4px 12px ${C.base}80`,
-              }}>
-                <div style={{ padding: "6px 8px", fontSize: 11, color: C.subtle, fontWeight: 600, textTransform: "uppercase" }}>Color Theme</div>
-                {[
-                  { id: "azure", label: "Azure (Default)" },
-                  { id: "espresso", label: "Espresso (Warm)" },
-                  { id: "cobalt", label: "Cobalt (Vibrant)" }
-                ].map(theme => (
-                  <button key={theme.id}
-                    onClick={() => { selectTheme(theme.id as ThemeName); setShowSettingsDropdown(false); }}
-                    style={{
-                      width: "100%", padding: "6px 8px", borderRadius: 4,
-                      background: currentThemeName === theme.id ? `${C.sienna}15` : "transparent",
-                      color: currentThemeName === theme.id ? C.sienna : C.text,
-                      border: "none", cursor: "pointer", textAlign: "left", fontSize: 13,
-                      display: "flex", alignItems: "center", justifyContent: "space-between",
-                    }}
-                  >
-                    {theme.label}
-                    {currentThemeName === theme.id && <Ic name="check" size={12} color={C.sienna} />}
-                  </button>
-                ))}
-                <div style={{ height: 1, background: C.line, margin: "4px 0" }} />
-                <button
-                  onClick={() => { setShowSettingsModal(true); setShowSettingsDropdown(false); }}
-                  style={{
-                    width: "100%", padding: "6px 8px", borderRadius: 4,
-                    background: "transparent", color: C.text,
-                    border: "none", cursor: "pointer", textAlign: "left", fontSize: 13,
-                    display: "flex", alignItems: "center", gap: 6
-                  }}
-                >
-                  <Ic name="settings" size={12} color={C.muted} />
-                  <span>Settings...</span>
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div style={{ width: 1, height: 12, background: C.line }} className="no-drag" />
-
-          {/* Window Controls (soft_design reveal effect) */}
+          {/* Window Controls (Minimize, Maximize, Close) */}
           <div className="window-controls no-drag" style={{ display: "flex", alignItems: "center", position: "relative", flexShrink: 0 }}>
             <button 
               onClick={() => callBackend('window_minimize')}
@@ -650,7 +445,7 @@ export default function App() {
                 transition: "opacity 0.12s, max-width 0.18s, margin-left 0.18s",
               }}
             >
-              <svg viewBox="0 0 10 10" width="10" height="10"><rect x="2" y="2" width="6" height="6" fill="none" stroke="currentColor" stroke-width="1"/></svg>
+              <svg viewBox="0 0 10 10" width="10" height="10"><rect x="2" y="2" width="6" height="6" fill="none" stroke="currentColor" strokeWidth="1"/></svg>
             </button>
             <button 
               onClick={() => callBackend('window_close')}
@@ -671,12 +466,233 @@ export default function App() {
               }}
             >
               <svg viewBox="0 0 10 10" width="10" height="10">
-                <line x1="2" y1="2" x2="8" y2="8" stroke="currentColor" stroke-width="1.2"/>
-                <line x1="8" y1="2" x2="2" y2="8" stroke="currentColor" stroke-width="1.2"/>
+                <line x1="2" y1="2" x2="8" y2="8" stroke="currentColor" strokeWidth="1.2"/>
+                <line x1="8" y1="2" x2="2" y2="8" stroke="currentColor" strokeWidth="1.2"/>
               </svg>
             </button>
           </div>
         </div>
+
+        {/* ── TOPBAR 2: APP TOOLBAR ── */}
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0,
+          height: 34, background: C.panel, borderBottom: `1px solid ${C.line}`,
+          padding: "0 12px", gap: 12, userSelect: "none"
+        }}>
+          {/* Left: Branch, Run & Terminal */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+            {/* Project Branch indicator */}
+            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+              <Ic name="git-branch" size={12} color={C.muted} />
+              <span style={{
+                fontSize: 12, color: C.text,
+                fontFamily: "'JetBrains Mono', monospace",
+              }}>{gitBranch}</span>
+              <span style={{
+                fontSize: 11, color: C.rust,
+                fontFamily: "'JetBrains Mono', monospace",
+              }}>↑1</span>
+              <span style={{ width: 4, height: 4, borderRadius: "50%",
+                background: C.amber }} className="pulse" />
+            </div>
+
+            <div style={{ width: 1, height: 12, background: C.line }} />
+
+            {/* Run/Build */}
+            <button title="Run Project ⌘R" 
+              style={{
+                padding: "0 10px", borderRadius: 5,
+                background: C.sage, color: C.base,
+                border: "none", cursor: "pointer",
+                fontSize: 12, fontWeight: 600,
+                fontFamily: "'Inter', sans-serif",
+                flexShrink: 0,
+                display: "flex", alignItems: "center", gap: 5,
+                height: 22,
+              }}
+            >
+              <Ic name="play" size={9} color={C.base} />
+              Run
+            </button>
+
+            {/* Terminal quick toggle */}
+            <button title="Toggle Terminal ⌃`"
+              onClick={() => setShowTerminal(v => !v)}
+              style={{
+                width: 22, height: 22, borderRadius: 5,
+                background: showTerminal ? `${C.sienna}18` : "transparent",
+                border: `1px solid ${showTerminal ? C.sienna : C.line}`,
+                color: showTerminal ? C.sienna : C.muted,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: "pointer", flexShrink: 0,
+              }}
+            >
+              <Ic name="terminal" size={12} color={showTerminal ? C.sienna : C.muted} />
+            </button>
+          </div>
+
+          {/* Center: Search / Command trigger */}
+          <div style={{ flex: 1, maxWidth: 420, display: "flex", justifyContent: "center" }}>
+            <button
+              onClick={() => setShowCmd(true)}
+              style={{
+                width: "100%",
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "3px 10px", borderRadius: 5,
+                background: C.base, border: `1px solid ${C.line}`,
+                cursor: "pointer", transition: "all 0.15s",
+                fontFamily: "'Inter', sans-serif",
+                height: 24,
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLElement).style.borderColor = `${C.sienna}50`;
+                (e.currentTarget as HTMLElement).style.background = C.surface;
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.borderColor = C.line;
+                (e.currentTarget as HTMLElement).style.background = C.base;
+              }}>
+              <Ic name="search" size={11} color={C.muted} />
+              <span style={{ fontSize: 12, color: C.muted, flex: 1, textAlign: "left" }}>
+                Jump to file, symbol, or ask Kadmus…
+              </span>
+              <span style={{
+                fontSize: 10, color: C.subtle, fontFamily: "'JetBrains Mono', monospace",
+                padding: "0 4px", borderRadius: 3,
+                background: C.panel, border: `1px solid ${C.line}`,
+              }}>⌘K</span>
+            </button>
+          </div>
+
+          {/* Right: Selena, Presence, Account, Settings */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+            {/* Talk with Selena Sparkle button */}
+            <button
+              title="Talk with Selena"
+              aria-label="Talk with Selena"
+              onClick={openSelenaSession}
+              style={{
+                height: 20,
+                display: "flex", alignItems: "center", gap: 4,
+                padding: 0,
+                background: "transparent",
+                border: "none",
+                color: C.sage,
+                cursor: "pointer",
+                flexShrink: 0,
+                fontFamily: "'Inter', sans-serif",
+              }}
+              className="selena-cta"
+            >
+              <Sparkles size={12} strokeWidth={2.5} aria-hidden="true" focusable="false" style={{ flexShrink: 0, display: "block" }} />
+              <span className="selena-cta-label" style={{ fontSize: 12, fontWeight: 600, color: C.sage }}>
+                Talk with Selena
+              </span>
+            </button>
+
+            <div style={{ width: 1, height: 12, background: C.line }} />
+
+            {/* Presence */}
+            <div style={{ display: "flex", alignItems: "center", gap: 2, flexShrink: 0 }}>
+              {[
+                { i: "A", c: C.sage,   at: "signal.ts:14" },
+                { i: "M", c: C.ink,    at: "queue.ts:8"   },
+              ].map((p, i) => (
+                <div key={i} title={`${p.i} · ${p.at}`}
+                  style={{
+                    width: 18, height: 18, borderRadius: "50%",
+                    background: `${p.c}22`, border: `1.2px solid ${p.c}`,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 10, fontWeight: 600, color: p.c,
+                    marginLeft: i > 0 ? -4 : 0, cursor: "pointer",
+                  }}>{p.i}</div>
+              ))}
+              <button style={{
+                width: 18, height: 18, borderRadius: "50%",
+                background: "transparent", border: `1.2px dashed ${C.line}`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: C.subtle, cursor: "pointer", marginLeft: -4,
+              }}>
+                <Ic name="add" size={9} />
+              </button>
+            </div>
+
+            <div style={{ width: 1, height: 12, background: C.line }} />
+
+            {/* Account */}
+            <button title="Account" style={{
+              width: 22, height: 22, borderRadius: 5,
+              background: "transparent",
+              border: `1px solid ${C.line}`,
+              color: C.muted,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              cursor: "pointer", flexShrink: 0,
+            }}>
+              <Ic name="account" size={11} />
+            </button>
+
+            {/* Settings / Theme selector dropdown */}
+            <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+              <button title="Settings ⌘,"
+                onClick={() => setShowSettingsDropdown(v => !v)}
+                style={{
+                  width: 22, height: 22, borderRadius: 5,
+                  background: "transparent",
+                  border: `1px solid ${C.line}`,
+                  color: C.muted,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  cursor: "pointer", flexShrink: 0,
+                }}
+              >
+                <Ic name="settings-gear" size={12} />
+              </button>
+              
+              {showSettingsDropdown && (
+                <div style={{
+                  position: "absolute", right: 0, top: 28, zIndex: 1000,
+                  background: C.surface, border: `1px solid ${C.line}`,
+                  borderRadius: 6, padding: 4, width: 180,
+                  boxShadow: `0 4px 12px ${C.base}80`,
+                }}>
+                  <div style={{ padding: "6px 8px", fontSize: 11, color: C.subtle, fontWeight: 600, textTransform: "uppercase" }}>Color Theme</div>
+                  {[
+                    { id: "azure", label: "Azure (Default)" },
+                    { id: "espresso", label: "Espresso (Warm)" },
+                    { id: "cobalt", label: "Cobalt (Vibrant)" }
+                  ].map(theme => (
+                    <button key={theme.id}
+                      onClick={() => { selectTheme(theme.id as ThemeName); setShowSettingsDropdown(false); }}
+                      style={{
+                        width: "100%", padding: "6px 8px", borderRadius: 4,
+                        background: currentThemeName === theme.id ? `${C.sienna}15` : "transparent",
+                        color: currentThemeName === theme.id ? C.sienna : C.text,
+                        border: "none", cursor: "pointer", textAlign: "left", fontSize: 12,
+                        display: "flex", alignItems: "center", justifyContent: "space-between",
+                      }}
+                    >
+                      {theme.label}
+                      {currentThemeName === theme.id && <Ic name="check" size={12} color={C.sienna} />}
+                    </button>
+                  ))}
+                  <div style={{ height: 1, background: C.line, margin: "4px 0" }} />
+                  <button
+                    onClick={() => { setShowSettingsModal(true); setShowSettingsDropdown(false); }}
+                    style={{
+                      width: "100%", padding: "6px 8px", borderRadius: 4,
+                      background: "transparent", color: C.text,
+                      border: "none", cursor: "pointer", textAlign: "left", fontSize: 12,
+                      display: "flex", alignItems: "center", gap: 6
+                    }}
+                  >
+                    <Ic name="settings" size={12} color={C.muted} />
+                    <span>Settings...</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
 
         {/* ── MAIN WORKSPACE AREA ── */}
         <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
