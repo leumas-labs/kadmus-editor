@@ -173,8 +173,21 @@ void WebSocketServer::stop() {
     if (is_running_) {
         is_running_ = false;
         if (server_fd_ != -1) {
+#ifdef _WIN32
+            shutdown(server_fd_, SD_BOTH);
+#else
+            shutdown(server_fd_, SHUT_RDWR);
+#endif
             close_socket(server_fd_);
             server_fd_ = -1;
+        }
+
+        {
+            std::lock_guard<std::mutex> lock(clients_mutex_);
+            for (int fd : client_fds_) {
+                close_socket(fd);
+            }
+            client_fds_.clear();
         }
 
         if (listen_thread_.joinable()) {
@@ -218,20 +231,35 @@ void WebSocketServer::listen_loop() {
 }
 
 void WebSocketServer::handle_client(int client_fd) {
+    struct ClientGuard {
+        WebSocketServer& server;
+        int fd;
+        ClientGuard(WebSocketServer& s, int f) : server(s), fd(f) {
+            std::lock_guard<std::mutex> lock(server.clients_mutex_);
+            server.client_fds_.insert(fd);
+        }
+        ~ClientGuard() {
+            {
+                std::lock_guard<std::mutex> lock(server.clients_mutex_);
+                server.client_fds_.erase(fd);
+            }
+            close_socket(fd);
+        }
+    };
+
+    ClientGuard guard(*this, client_fd);
     char buffer[4096];
     std::vector<uint8_t> raw_buffer;
 
     // 1. Read HTTP Handshake Request
     int bytes_received = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
     if (bytes_received <= 0) {
-        close_socket(client_fd);
         return;
     }
     buffer[bytes_received] = '\0';
 
     if (!perform_handshake(client_fd, std::string(buffer))) {
         std::cerr << "Handshake failed." << std::endl;
-        close_socket(client_fd);
         return;
     }
 
@@ -272,8 +300,6 @@ void WebSocketServer::handle_client(int client_fd) {
             if (raw_buffer.empty()) break;
         }
     }
-
-    close_socket(client_fd);
 }
 
 bool WebSocketServer::perform_handshake(int client_fd, const std::string& request) {

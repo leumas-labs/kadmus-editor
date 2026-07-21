@@ -17,7 +17,7 @@
 // Represents a single native terminal session
 class TerminalSession {
 public:
-    TerminalSession(int id, const std::string& shell, std::function<void(const std::string&)> on_output);
+    TerminalSession(int id, const std::string& shell, std::function<void(int, const std::string&)> on_output);
     ~TerminalSession();
 
     bool start();
@@ -30,7 +30,7 @@ public:
 private:
     int id_;
     std::string shell_;
-    std::function<void(const std::string&)> on_output_cb_;
+    std::function<void(int, const std::string&)> on_output_cb_;
     bool is_running_;
     std::thread read_thread_;
 
@@ -55,7 +55,7 @@ public:
     ~TerminalManager();
 
     // Create a new session and return its session ID
-    int create_session(const std::string& shell, std::function<void(const std::string&)> on_output);
+    int create_session(const std::string& shell, std::function<void(int, const std::string&)> on_output);
     
     // Write data to a session
     bool write_session(int id, const std::string& data);

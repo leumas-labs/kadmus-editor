@@ -19,7 +19,9 @@ SRC = src/main.cpp \
       src/JSONRPCRouter.cpp \
       src/WebSocketServer.cpp \
       src/GitService.cpp \
-      src/ExtensionService.cpp
+      src/ExtensionService.cpp \
+      src/SettingsService.cpp \
+      src/LanguageServerProtocol.cpp
 
 TEST_SRC = src/test.cpp \
            src/FileSystemService.cpp \
@@ -28,7 +30,9 @@ TEST_SRC = src/test.cpp \
            src/JSONRPCRouter.cpp \
            src/WebSocketServer.cpp \
            src/GitService.cpp \
-           src/ExtensionService.cpp
+           src/ExtensionService.cpp \
+           src/SettingsService.cpp \
+           src/LanguageServerProtocol.cpp
 
 all: $(TARGET)
 

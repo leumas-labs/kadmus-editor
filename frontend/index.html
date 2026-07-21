@@ -1,118 +1,14 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Kadmus Editor - Premium System IDE</title>
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <meta name="description" content="Kadmus Editor is a premium desktop IDE designed for developers, offering a sleek interface with advanced coding features, AI assistance, and efficient file management." />
+    <style>html, body { height: 100%; margin: 0; } #root { height: 100%; }</style>
   </head>
   <body>
-    <div id="app">
-      <div class="workbench">
-        <!-- 1. LEFT ACTIVITY BAR -->
-        <div class="activity-bar">
-          <div class="bar-top">
-            <div class="icon-btn active" id="btn-explorer" title="Explorer">
-              <i data-lucide="files" class="nav-icon"></i>
-            </div>
-            <div class="icon-btn" id="btn-git" title="Version Control (Git)">
-              <i data-lucide="git-branch" class="nav-icon"></i>
-            </div>
-            <div class="icon-btn" id="btn-extensions" title="Extensions">
-              <i data-lucide="blocks" class="nav-icon"></i>
-            </div>
-          </div>
-          <div class="bar-bottom">
-            <div class="icon-btn" id="btn-agent" title="AI Agent Panel">
-              <i data-lucide="sparkles" class="nav-icon animate-pulse"></i>
-            </div>
-          </div>
-        </div>
-
-        <!-- 2. SIDEBAR (Explorer / Git / Extensions) -->
-        <div class="sidebar">
-          <div class="sidebar-header">
-            <span id="sidebar-title">EXPLORER</span>
-          </div>
-          
-          <!-- Explorer View -->
-          <div class="sidebar-content" id="explorer-view">
-            <div class="explorer-tree" id="explorer-files">
-              <!-- Dynamically populated -->
-              <div class="loading-label">Loading files...</div>
-            </div>
-          </div>
-
-          <!-- Git View -->
-          <div class="sidebar-content hidden" id="git-view">
-            <div class="git-header-bar">
-              <span class="view-subtitle">Changes</span>
-              <button class="action-btn" id="git-commit-btn">
-                <i data-lucide="check" class="btn-icon"></i> Commit
-              </button>
-            </div>
-            <input type="text" class="git-input" id="git-message" placeholder="Commit message (Ctrl+Enter)" />
-            <div class="git-list" id="git-files-list">
-              <div class="empty-state">No changes detected</div>
-            </div>
-          </div>
-
-          <!-- Extensions View -->
-          <div class="sidebar-content hidden" id="extensions-view">
-            <div class="ext-search">
-              <input type="text" class="search-input" id="ext-search-input" placeholder="Search VSIX path..." />
-              <button class="action-btn" id="ext-install-btn">Install VSIX</button>
-            </div>
-            <div class="ext-list" id="extensions-list">
-              <div class="empty-state">No extensions installed</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 3. CENTRAL WORK AREA -->
-        <div class="editor-workbench">
-          <!-- Editor Container -->
-          <div class="editor-section">
-            <div class="tab-bar" id="tab-bar">
-              <!-- Rendered programmatically -->
-            </div>
-            <div class="editor-container" id="editor-root">
-              <!-- Monaco Editor -->
-            </div>
-          </div>
-
-          <!-- Terminal Container -->
-          <div class="terminal-section">
-            <div class="terminal-header">
-              <span class="term-title">TERMINAL</span>
-            </div>
-            <div class="terminal-body" id="terminal-container">
-              <!-- xterm.js will mount inside here -->
-            </div>
-          </div>
-        </div>
-
-        <!-- 4. RIGHT AI PANEL -->
-        <div class="ai-panel collapsed" id="ai-panel">
-          <div class="ai-header">
-            <span class="ai-title">KADMUS ASSISTANT</span>
-          </div>
-          <div class="ai-messages" id="ai-messages">
-            <div class="msg bot">
-              <span class="author">Kadmus AI</span>
-              <p>Bonjour ! Je suis l'assistant IA natif d'Interface Studio. Comment puis-je t'aider aujourd'hui ?</p>
-            </div>
-          </div>
-          <div class="ai-input-area">
-            <input type="text" class="ai-input" id="ai-input" placeholder="Ask Agent anything..." />
-          </div>
-        </div>
-      </div>
-    </div>
-    <script type="module" src="/src/main.ts"></script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

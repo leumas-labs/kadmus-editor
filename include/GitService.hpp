@@ -17,6 +17,9 @@ public:
     // Get list of modified and untracked files
     std::vector<GitStatusFile> get_status(const std::string& repo_path);
 
+    // Get current branch name
+    std::string get_branch(const std::string& repo_path);
+
     // Add a file to index (git add)
     bool stage_file(const std::string& repo_path, const std::string& file_path);
 

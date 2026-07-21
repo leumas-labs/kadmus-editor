@@ -9,8 +9,10 @@ JSONRPCRouter::JSONRPCRouter(
     std::shared_ptr<TerminalManager> term_manager,
     std::shared_ptr<AgentService> agent_service,
     std::shared_ptr<GitService> git_service,
-    std::shared_ptr<ExtensionService> ext_service
-) : fs_service_(fs_service), term_manager_(term_manager), agent_service_(agent_service), git_service_(git_service), ext_service_(ext_service) {}
+    std::shared_ptr<ExtensionService> ext_service,
+    std::shared_ptr<SettingsService> settings_service,
+    std::shared_ptr<LspService> lsp_service
+) : fs_service_(fs_service), term_manager_(term_manager), agent_service_(agent_service), git_service_(git_service), ext_service_(ext_service), settings_service_(settings_service), lsp_service_(lsp_service) {}
 
 JSONRPCRouter::~JSONRPCRouter() {}
 
@@ -62,11 +64,11 @@ std::string JSONRPCRouter::handle_request(const std::string& raw_json, std::func
         else if (method == "term_create") {
             std::string shell = req["params"].value("shell", "bash");
             
-            int session_id = term_manager_->create_session(shell, [send_to_client_cb](const std::string& data) {
+            int session_id = term_manager_->create_session(shell, [send_to_client_cb](int id, const std::string& data) {
                 json notif;
                 notif["jsonrpc"] = "2.0";
                 notif["method"] = "term_output";
-                notif["params"] = {{"data", data}};
+                notif["params"] = {{"id", id}, {"data", data}};
                 send_to_client_cb(notif.dump(-1, ' ', false, json::error_handler_t::replace));
             });
 
@@ -86,6 +88,11 @@ std::string JSONRPCRouter::handle_request(const std::string& raw_json, std::func
             int cols = req["params"].value("cols", 80);
             int rows = req["params"].value("rows", 24);
             bool success = term_manager_->resize_session(term_id, cols, rows);
+            return make_response(success);
+        }
+        else if (method == "term_close") {
+            int term_id = req["params"].value("id", -1);
+            bool success = term_manager_->close_session(term_id);
             return make_response(success);
         }
         else if (method == "agent_send") {
@@ -113,6 +120,73 @@ std::string JSONRPCRouter::handle_request(const std::string& raw_json, std::func
                 });
             }
             return make_response(arr);
+        }
+        else if (method == "git_branch") {
+            std::string repo_path = req["params"].value("repo_path", "");
+            std::string branch = git_service_->get_branch(repo_path);
+            return make_response(branch);
+        }
+        else if (method == "window_minimize") {
+            extern void trigger_window_minimize();
+            trigger_window_minimize();
+            return make_response(true);
+        }
+        else if (method == "window_maximize") {
+            extern void trigger_window_maximize();
+            trigger_window_maximize();
+            return make_response(true);
+        }
+        else if (method == "window_close") {
+            extern void trigger_window_close();
+            trigger_window_close();
+            return make_response(true);
+        }
+        else if (method == "window_drag") {
+            extern void trigger_window_drag();
+            trigger_window_drag();
+            return make_response(true);
+        }
+        else if (method == "set_drag_zone") {
+            bool active = req["params"].value("active", false);
+            extern void set_drag_zone_active(bool active);
+            set_drag_zone_active(active);
+            return make_response(true);
+        }
+        else if (method == "settings_get") {
+            auto settings = settings_service_->get_settings();
+            return make_response(settings);
+        }
+        else if (method == "settings_set") {
+            json new_settings = req["params"].value("settings", json::object());
+            bool success = settings_service_->set_settings(new_settings);
+            return make_response(success);
+        }
+        else if (method == "lsp_initialize") {
+            std::string language = req["params"].value("language", "");
+            bool success = lsp_service_->initialize_server(language, [send_to_client_cb, language](const std::string& lsp_msg) {
+                try {
+                    json notif;
+                    notif["jsonrpc"] = "2.0";
+                    notif["method"] = "lsp_notification";
+                    notif["params"] = {
+                        {"language", language},
+                        {"message", json::parse(lsp_msg)}
+                    };
+                    send_to_client_cb(notif.dump());
+                } catch (...) {}
+            });
+            return make_response(success);
+        }
+        else if (method == "lsp_send") {
+            std::string language = req["params"].value("language", "");
+            std::string lsp_msg = req["params"]["message"].dump();
+            bool success = lsp_service_->send_message(language, lsp_msg);
+            return make_response(success);
+        }
+        else if (method == "lsp_shutdown") {
+            std::string language = req["params"].value("language", "");
+            lsp_service_->shutdown_server(language);
+            return make_response(true);
         }
         else if (method == "git_stage") {
             std::string repo_path = req["params"].value("repo_path", "");

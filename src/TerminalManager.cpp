@@ -7,7 +7,7 @@
 void TerminalSession::read_loop() {
     // Windows implementation of reading from pipe
 }
-TerminalSession::TerminalSession(int id, const std::string& shell, std::function<void(const std::string&)> on_output)
+TerminalSession::TerminalSession(int id, const std::string& shell, std::function<void(int, const std::string&)> on_output)
     : id_(id), shell_(shell), on_output_cb_(on_output), is_running_(false) {}
 
 TerminalSession::~TerminalSession() {
@@ -37,7 +37,7 @@ void TerminalSession::close() {}
 #include <pty.h>
 #endif
 
-TerminalSession::TerminalSession(int id, const std::string& shell, std::function<void(const std::string&)> on_output)
+TerminalSession::TerminalSession(int id, const std::string& shell, std::function<void(int, const std::string&)> on_output)
     : id_(id), shell_(shell), on_output_cb_(on_output), is_running_(false), pid_(-1), pty_master_fd_(-1) {}
 
 TerminalSession::~TerminalSession() {
@@ -127,7 +127,7 @@ void TerminalSession::read_loop() {
         }
         buffer[bytes_read] = '\0';
         std::string output(buffer, bytes_read);
-        on_output_cb_(output);
+        on_output_cb_(id_, output);
     }
     
     // Auto shutdown session on shell exit
@@ -147,7 +147,7 @@ TerminalManager::~TerminalManager() {
     sessions_.clear(); // Unique pointers automatically destroy the sessions and call close()
 }
 
-int TerminalManager::create_session(const std::string& shell, std::function<void(const std::string&)> on_output) {
+int TerminalManager::create_session(const std::string& shell, std::function<void(int, const std::string&)> on_output) {
     int id = next_session_id_++;
     
     // Resolve shell path under Linux/macOS

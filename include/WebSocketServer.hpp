@@ -6,6 +6,8 @@
 #include <thread>
 #include <vector>
 #include <atomic>
+#include <mutex>
+#include <set>
 #include "JSONRPCRouter.hpp"
 
 #ifdef _WIN32
@@ -44,6 +46,8 @@ private:
 #endif
 
     std::vector<std::thread> client_threads_;
+    std::set<int> client_fds_;
+    std::mutex clients_mutex_;
 
     void listen_loop();
     void handle_client(int client_fd);

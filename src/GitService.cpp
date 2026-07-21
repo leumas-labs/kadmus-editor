@@ -157,3 +157,23 @@ bool GitService::commit(
 
     return error == 0;
 }
+
+std::string GitService::get_branch(const std::string& repo_path) {
+    git_repository* repo = nullptr;
+    int error = git_repository_open(&repo, repo_path.c_str());
+    if (error < 0) return "main";
+
+    git_reference* head = nullptr;
+    error = git_repository_head(&head, repo);
+    if (error < 0) {
+        git_repository_free(repo);
+        return "main";
+    }
+
+    const char* name = git_reference_shorthand(head);
+    std::string branch_name = name ? name : "main";
+
+    git_reference_free(head);
+    git_repository_free(repo);
+    return branch_name;
+}
