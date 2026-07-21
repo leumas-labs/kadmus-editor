@@ -16,7 +16,6 @@ export function RealFileTree({
   activePath,
   onSelect,
   filterQuery = "",
-  showHidden = false,
   refreshTrigger = 0,
 }: {
   parentPath?: string;
@@ -24,7 +23,6 @@ export function RealFileTree({
   activePath: string;
   onSelect: (path: string) => void;
   filterQuery?: string;
-  showHidden?: boolean;
   refreshTrigger?: number;
 }) {
   const [nodes, setNodes] = useState<FileNode[]>([]);
@@ -34,9 +32,9 @@ export function RealFileTree({
     async function fetchFiles() {
       const items = await callBackend('fs_list', { path: parentPath });
       if (items && Array.isArray(items)) {
-        // Filter out .git and hidden files unless showHidden is true
+        // Permanently hide .git directory
         const filtered = items.filter((item: FileNode) => {
-          if (!showHidden && item.name === ".git") return false;
+          if (item.name === ".git") return false;
           if (filterQuery.trim()) {
             const match = item.name.toLowerCase().includes(filterQuery.toLowerCase());
             return item.is_directory || match;
@@ -54,7 +52,7 @@ export function RealFileTree({
       }
     }
     fetchFiles();
-  }, [parentPath, showHidden, filterQuery, refreshTrigger]);
+  }, [parentPath, filterQuery, refreshTrigger]);
 
   const toggleDirectory = (path: string) => {
     setExpanded(prev => {
@@ -121,7 +119,6 @@ export function RealFileTree({
                   activePath={activePath}
                   onSelect={onSelect}
                   filterQuery={filterQuery}
-                  showHidden={showHidden}
                   refreshTrigger={refreshTrigger}
                 />
               </div>
@@ -140,7 +137,6 @@ export function RepoPanel({ activePath, onSelect }: {
   activePath: string; onSelect: (n: string) => void;
 }) {
   const [filterQuery, setFilterQuery] = useState("");
-  const [showHidden, setShowHidden] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const handleRefresh = () => {
@@ -177,21 +173,6 @@ export function RepoPanel({ activePath, onSelect }: {
             onMouseLeave={e => (e.currentTarget.style.color = C.muted)}
           >
             <Ic name="new-file" size={12} color={C.muted} />
-          </button>
-          <button
-            title={showHidden ? "Hide Hidden Files (.git)" : "Show Hidden Files (.git)"}
-            onClick={() => setShowHidden(prev => !prev)}
-            style={{
-              width: 22, height: 22, borderRadius: 4,
-              background: showHidden ? `${C.sienna}20` : "transparent",
-              border: "none", color: showHidden ? C.sienna : C.muted,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              cursor: "pointer", transition: "all 0.15s",
-            }}
-            onMouseEnter={e => (e.currentTarget.style.color = C.text)}
-            onMouseLeave={e => (e.currentTarget.style.color = showHidden ? C.sienna : C.muted)}
-          >
-            <Ic name={showHidden ? "eye" : "eye-closed"} size={12} />
           </button>
           <button
             title="Refresh File Tree"
@@ -246,7 +227,6 @@ export function RepoPanel({ activePath, onSelect }: {
           activePath={activePath}
           onSelect={onSelect}
           filterQuery={filterQuery}
-          showHidden={showHidden}
           refreshTrigger={refreshTrigger}
         />
       </div>
